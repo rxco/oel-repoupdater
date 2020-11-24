@@ -1,0 +1,11 @@
+{
+    "repositories": [{
+        "base_url": "https://yum.oracle.com/repo/OracleLinux/OL8/",
+        "packages":{
+            "oel": "0/baseos/base/x86_64/",
+            "epel": "developer/EPEL/x86_64/"
+        }
+    }],
+    "artifactory_url": "http://ARTIFACTORY_SERVER_HOSTNAME:8081/artifactory/my-repository/",
+    "updateInterval": 30
+}
