@@ -2,10 +2,19 @@
     "repositories": [{
         "base_url": "https://yum.oracle.com/repo/OracleLinux/OL8/",
         "packages":{
-            "oel": "0/baseos/base/x86_64/",
+            "oel": "baseos/latest/x86_64/",
             "epel": "developer/EPEL/x86_64/"
         }
     }],
-    "artifactory_url": "http://ARTIFACTORY_SERVER_HOSTNAME:8081/artifactory/my-repository/",
-    "updateInterval": 30
+    "artifactory": {
+        "base_url": "https://raulcontreras.jfrog.io/artifactory/",
+        "get_repo": "api/repositories",
+        "local_repo": "api/repositories/oel8-local-",
+        "virtual_repo": "api/repositories/virtual-oel8-repo",
+        "headers": {
+            "X-JFrog-Art-Api": "AKCp8hzD786Q8Mmhfas9s3F7G1JZq8fLyUENeLk5xw6p12QPecTCPu9V7tPuZKxpPxtQxCuoB",
+            "Content-Type": "application/json"
+        }
+    }
+    , "updateInterval": 30
 }
