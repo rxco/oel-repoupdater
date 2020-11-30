@@ -4,8 +4,6 @@ require 'httparty'
 require 'json'
 require 'nokogiri'
 require 'open-uri'
-
-require 'pry'
 require 'zip'
 
 class Oelupdater
@@ -130,7 +128,7 @@ class Oelupdater
 
         #using curl as http party is not able to push binary files
         # we use X-Explode-Archive-Atomic: true to extract the files once in the repo
-        Kernel.system "curl -H 'X-JFrog-Art-Api: #{@artifactory_config[:token]}' -X PUT #{local_url} -T #{@zip_name} -H 'Content-Type: application/zip' -H 'X-Explode-Archive-Atomic: true'"
+        Kernel.system "curl -H 'X-JFrog-Art-Api: #{@artifactory_config[:token]}' -X PUT #{local_url} -T #{@zip_name} -H 'Content-Type: text/plain' -H 'X-Explode-Archive-Atomic: true'"
     end
 
     def update_virtual_repo(new_local_repo_name)
@@ -171,7 +169,6 @@ class Oelupdater
         File.delete(@zip_name) if File.exist?(@zip_name)
         FileUtils.remove_dir("oel/")
     end
-
 end
 
 Oelupdater.new

@@ -1,0 +1,7 @@
+items.find({
+  "type" : "file",
+  "$or":[{ 
+    "repo" : {"$match" : "*oel8-local-*"} }]})
+  .include("name","repo","path","size")
+  .sort({"$desc": ["size"]})
+  .limit(10)

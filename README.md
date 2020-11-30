@@ -18,3 +18,36 @@ Process:
 3. Unzip folder in local repo
 3. Verify existence and update/create virtual repo with new reference to local repo
 4. Delete local files
+
+Requirements:
+`install gems with bundle install`
+
+---
+Solution 2
+
+Python script that gets latest artifacts and compares it with the list of current artifacts in local repo.
+Updates the latest repo to show only latest artifacts.
+
+Process:
+1. Scrape website and create object with list of files.
+2. Trough AQL query we get the current objects in latest
+3. We compare the two objects and get missing artifacts
+3. We download all required files
+4. Existent files in local repo are copied to latest
+5. Non existent artifacts are downloaded from oracle website and pushed to artifactory.
+
+Requirements:
+`install beautifulsoup: pip install BeautifulSoup4`
+
+---
+
+# Daemon Services
+Supposing the server can use crontab, this would be the way to execute the ruby and pythong script in an scheduled approach.
+
+`crontab -e`
+
+This will run the scripts at 12:00AM on the first of every month.
+
+`0 0 1 * * <local-ruby-path>/ruby-2.6.3/bin/ruby oelupdater.rb`
+
+`0 0 1 * * <local-python>/python3 epelupdater.py`
