@@ -6,6 +6,7 @@ require 'nokogiri'
 require 'open-uri'
 
 require 'pry'
+require 'zip'
 
 class Oelupdater
 
@@ -22,6 +23,8 @@ class Oelupdater
         # create url
         @repositories = configurations[:repositories][0]
         oel_url = @repositories[:base_url] + @repositories[:packages][:oel]
+        @zip_name = "oel8-#{Date.today.to_time.to_i}.zip"
+        @today = Date.today.to_time.to_i
         puts "done.."
 
         # fetch files
@@ -41,7 +44,7 @@ class Oelupdater
         puts "done ..."
 
         puts "uploading files to repo"
-        upload_files_to_local_repo(repo_name)
+        upload_files_to_local_repo
         puts "done ..."
 
         # copy files from disk to artifactory
@@ -49,8 +52,11 @@ class Oelupdater
         update_virtual_repo(repo_name)
         puts "done ..."
 
-        puts "process finished"
+        puts "delete local files"
+        clean_local_files
+        puts "done ..."
 
+        puts "process finished"
     end
 
     private
@@ -69,31 +75,41 @@ class Oelupdater
     end
 
     def download_rpms(scraped_links, oel_url)
-        local_repo = "oel/#{Date.today.to_time.to_i}/" + @repositories[:packages][:oel]
+        local_repo = "oel/#{@today}/" + @repositories[:packages][:oel]
         FileUtils.mkdir_p local_repo
 
         file_count = 0
-        scraped_links.each do |package_url| 
-            
-            download_url = oel_url + package_url 
-            file_name = package_url.split("/")
+        
+        # Delete zips if exists
+        File.delete(@zip_name) if File.exist?(@zip_name)
 
-            open(local_repo + file_name[1], 'wb') do |file|
-                file << URI.open(download_url).read
+        Zip::File.open(@zip_name, Zip::File::CREATE) do |zipfile|
+            scraped_links.each do |package_url| 
+                download_url = oel_url + package_url 
+                file_name = package_url.split("/")
+
+                open(local_repo + file_name[1], 'wb') do |file|
+                    file << URI.open(download_url).read
+                end
+
+                # Two arguments:
+                # - The name of the file as it will appear in the archive
+                # - The original file, including the path to find it
+                zipfile.add(local_repo + file_name[1],  File.join(local_repo, file_name[1]))
+                puts "added: #{local_repo + file_name[1]}"
+                file_count += 1
             end
-            file_count += 1
-            break;
         end
-        puts "downloaded and created #{file_count} files ..."
+        
+        puts "downloaded, created and zipped #{file_count} files ..."
     end
 
     def create_local_repo_artifactory
         # repository configuration taken from
         # https://www.jfrog.com/confluence/display/JFROG/Repository+Configuration+JSON
-        today = Date.today.to_time.to_i
-        repo_name = "oel8-local-#{today}"
+        repo_name = "oel8-local-#{@today}"
         puts "creating local repo #{repo_name} ..."
-        response = HTTParty.put(@artifactory_config[:base_url] + @artifactory_config[:local_repo] + today.to_s, 
+        response = HTTParty.put(@artifactory_config[:base_url] + @artifactory_config[:local_repo] + @today.to_s, 
             body: { rclass: 'local', 
                     description: 'oel8 artifacts',
                     packageType:'rpm'}.to_json, 
@@ -108,8 +124,13 @@ class Oelupdater
         end
     end
 
-    def upload_files_to_local_repo(repo_name)
-        puts "uploading files to local repo #{repo_name}"
+    def upload_files_to_local_repo
+        puts "uploading files to local repo"
+        local_url = @artifactory_config[:base_url] + @artifactory_config[:upload_url] + @today.to_s 
+
+        #using curl as http party is not able to push binary files
+        # we use X-Explode-Archive-Atomic: true to extract the files once in the repo
+        Kernel.system "curl -H 'X-JFrog-Art-Api: #{@artifactory_config[:token]}' -X PUT #{local_url} -T #{@zip_name} -H 'Content-Type: application/zip' -H 'X-Explode-Archive-Atomic: true'"
     end
 
     def update_virtual_repo(new_local_repo_name)
@@ -143,6 +164,12 @@ class Oelupdater
                 puts "updated virtual repo..."
             end
         end
+    end
+
+    def clean_local_files
+        puts "cleaning local files"
+        File.delete(@zip_name) if File.exist?(@zip_name)
+        FileUtils.remove_dir("oel/")
     end
 
 end
